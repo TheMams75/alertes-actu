@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "run = passage normal, test = message de test, chat-id = récupérer ton chat_id, dry-run = simulation"
+        description: "run = passage normal, test = message de test, chat-id = récupérer ton chat_id, dry-run = simulation, test-alerte = envoie la meilleure info du moment"
         type: choice
         default: run
-        options: [run, test, chat-id, dry-run]
+        options: [run, test-alerte, test, chat-id, dry-run]
 
 concurrency:
   group: alertes-actu

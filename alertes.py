@@ -7,6 +7,7 @@ Usage :
     python3 alertes.py test      envoie un message de test sur Telegram
     python3 alertes.py chat-id   renvoie ton chat_id dans la conversation avec le bot
     python3 alertes.py dry-run   affiche ce qui serait envoyé, sans rien envoyer
+    python3 alertes.py test-alerte  envoie l'info la mieux notée du moment au format alerte
 
 Variables d'environnement : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
 Uniquement la bibliothèque standard de Python.
@@ -220,7 +221,7 @@ def formater(groupe):
 
 # ---------- passage principal ----------
 
-def passage(envoi=True):
+def passage(envoi=True, test=False):
     cfg = charger_json(CONFIG, None)
     if cfg is None:
         sys.exit("config.json introuvable ou invalide.")
@@ -242,7 +243,7 @@ def passage(envoi=True):
             print(f"- {f['nom']}: {len(lus)} articles")
             articles += lus
 
-    nouveaux = [a for a in articles if a["id"] not in vus
+    nouveaux = [a for a in articles if (test or a["id"] not in vus)
                 and (a["date"] is None or a["date"] >= limite)]
     for a in articles:
         vus.setdefault(a["id"], t0.timestamp())
@@ -272,6 +273,21 @@ def passage(envoi=True):
                 candidats.append(g)
     candidats.sort(key=lambda g: g[0]["score"], reverse=True)
     candidats = candidats[: cfg["max_alertes_par_passage"]]
+
+    classement = sorted(groupes, key=lambda g: g[0]["score"], reverse=True)
+    print("Infos les mieux notées en ce moment :")
+    for g in classement[:8]:
+        src = ", ".join(sorted({a["source"] for a in g}))
+        print(f"  [{g[0]['score']}] {g[0]['titre']}  ({src})  <- {', '.join(g[0]['raisons'][:5])}")
+
+    if test:
+        if not classement:
+            envoyer("🧪 Test : aucun article lu dans les flux.")
+            return []
+        g = classement[0]
+        ok = envoyer("🧪 <b>TEST</b> (seuil réel : " + str(cfg["seuil_alerte"]) + ")\n" + formater(g))
+        print("Alerte de test envoyée." if ok else "Échec de l'envoi Telegram.")
+        return [g]
 
     print(f"{len(articles)} lus, {len(nouveaux)} nouveaux, {len(candidats)} alerte(s)")
     for g in candidats:
@@ -330,6 +346,8 @@ if __name__ == "__main__":
         passage(envoi=True)
     elif mode == "dry-run":
         passage(envoi=False)
+    elif mode == "test-alerte":
+        passage(envoi=False, test=True)
     elif mode == "test":
         ok = envoyer("🧪 <b>Test</b> : le bot d'alertes actu fonctionne.")
         sys.exit(0 if ok else 1)
