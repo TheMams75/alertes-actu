@@ -315,6 +315,9 @@ def chat_id():
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "run"
     if mode == "run":
+        if not os.environ.get("TELEGRAM_BOT_TOKEN") or not os.environ.get("TELEGRAM_CHAT_ID"):
+            print("Secrets Telegram absents : passage ignoré (voir README).")
+            sys.exit(0)
         passage(envoi=True)
     elif mode == "dry-run":
         passage(envoi=False)
