@@ -155,6 +155,10 @@ class Scoreur:
                         for p, termes in cfg["mots_cles"].items()]
         self.acteurs = [(t, motif(t)) for t in cfg["acteurs"]]
         self.exclusions = [motif(t) for t in cfg["exclusions"]]
+        pr = cfg.get("priorites", {})
+        self.bonus_max = pr.get("bonus_max", 0)
+        self.priorites = {k: [(t, motif(t)) for t in v]
+                          for k, v in pr.items() if isinstance(v, list)}
 
     def score(self, art):
         titre = art["titre"].lower()
@@ -175,6 +179,13 @@ class Scoreur:
             if acteurs:
                 total += min(len(acteurs), 2)
                 raisons += acteurs[:2]
+            # priorités de Bob : finance et portée internationale (+2 par domaine, plafonné)
+            bonus = 0
+            for domaine, termes in self.priorites.items():
+                if any(m.search(texte) for t, m in termes):
+                    bonus += 2
+                    raisons.append("+" + domaine)
+            total += min(bonus, self.bonus_max)
         return round(total, 1), raisons
 
 
