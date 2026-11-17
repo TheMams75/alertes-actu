@@ -297,6 +297,9 @@ def passage(envoi=True):
 
 def chat_id():
     rep = telegram("getUpdates")
+    if not rep.get("ok"):
+        sys.exit("Telegram refuse le token : vérifie le secret TELEGRAM_BOT_TOKEN "
+                 "(copie exacte du token donné par BotFather, sans espace).")
     chats = {}
     for u in rep.get("result", []):
         msg = u.get("message") or u.get("channel_post") or {}
@@ -315,8 +318,12 @@ def chat_id():
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "run"
     if mode == "run":
-        if not os.environ.get("TELEGRAM_BOT_TOKEN") or not os.environ.get("TELEGRAM_CHAT_ID"):
-            print("Secrets Telegram absents : passage ignoré (voir README).")
+        if not os.environ.get("TELEGRAM_BOT_TOKEN"):
+            print("Secret TELEGRAM_BOT_TOKEN absent : passage ignoré (voir README).")
+            sys.exit(0)
+        if not os.environ.get("TELEGRAM_CHAT_ID"):
+            print("TELEGRAM_CHAT_ID absent : envoi du chat_id dans Telegram.")
+            chat_id()
             sys.exit(0)
         passage(envoi=True)
     elif mode == "dry-run":
