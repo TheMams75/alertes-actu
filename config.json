@@ -1,0 +1,22 @@
+{
+  "seuil_alerte": 6,
+  "max_alertes_par_passage": 3,
+  "fenetre_heures": 3,
+  "similarite_doublon": 0.4,
+  "flux": [
+    {"nom": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "actif": true},
+    {"nom": "Reuters", "url": "https://news.google.com/rss/search?q=when:2h+site:reuters.com/world&hl=en-US&gl=US&ceid=US:en", "actif": true},
+    {"nom": "Reuters", "url": "https://news.google.com/rss/search?q=when:2h+site:reuters.com/markets&hl=en-US&gl=US&ceid=US:en", "actif": true},
+    {"nom": "Reuters", "url": "https://news.google.com/rss/search?q=when:2h+site:reuters.com/business&hl=en-US&gl=US&ceid=US:en", "actif": true},
+    {"nom": "AP", "url": "https://flipboard.com/@associatedpress/top-stories-u7govdf1z.rss", "actif": true},
+    {"nom": "AP", "url": "https://news.google.com/rss/search?q=when:2h+site:apnews.com&hl=en-US&gl=US&ceid=US:en", "actif": true},
+    {"nom": "France 24", "url": "https://www.france24.com/fr/rss", "actif": false}
+  ],
+  "mots_cles": {
+    "5": ["nuclear strike", "nuclear attack", "declares war", "declared war", "martial law", "coup", "coup d'etat", "coup d'état", "assassinated", "assassination", "assassiné", "tsunami", "invasion", "invades", "state of emergency", "état d'urgence", "loi martiale", "emergency rate cut", "emergency rate hike", "emergency meeting", "bank collapse", "bank run", "circuit breaker", "flash crash", "trading halted", "halts trading", "capital controls", "mass shooting", "terror attack", "terrorist attack", "attentat", "magnitude 7", "magnitude 8", "magnitude 9", "world war", "nato article 5", "article 5"],
+    "3": ["breaking", "explosion", "explosions", "blast", "airstrike", "airstrikes", "air strike", "missile", "missiles", "drone attack", "attack on", "attacks", "killed", "dozens killed", "hundreds killed", "death toll", "earthquake", "séisme", "hostage", "hostages", "otages", "shooting", "plane crash", "crash landing", "evacuation", "evacuate", "nuclear", "default", "defaults", "bankruptcy", "faillite", "collapse", "collapses", "bailout", "plunge", "plunges", "plummet", "tumble", "tumbles", "sell-off", "selloff", "rout", "unexpectedly", "surprise cut", "surprise hike", "cyberattack", "cyber attack", "cyberattaque", "outage", "panne", "hacked", "data breach", "sanctions", "embargo", "blackout", "frappe", "frappes", "tués", "morts"],
+    "1": ["war", "guerre", "crisis", "crise", "urgent", "warning", "escalation", "escalade", "troops", "military", "ceasefire", "cessez-le-feu", "rate decision", "interest rates", "rate cut", "rate hike", "cuts rates", "raises rates", "taux", "recession", "inflation surge", "takeover", "rachat", "acquisition", "fine", "amende", "ban", "suspended"]
+  },
+  "acteurs": ["fed", "federal reserve", "ecb", "bce", "bank of england", "bank of japan", "imf", "fmi", "russia", "russie", "ukraine", "china", "chine", "taiwan", "iran", "israel", "israël", "gaza", "lebanon", "liban", "north korea", "corée du nord", "nato", "otan", "united states", "u.s.", "pentagon", "white house", "europe", "european union", "eu", "ue", "european commission", "commission européenne", "france", "paris", "macron", "germany", "allemagne", "uk", "britain", "visa", "mastercard", "swift", "paypal", "stripe", "revolut", "wave", "uefa", "fifa", "psg", "premier league", "ligue 1"],
+  "exclusions": ["opinion", "analysis", "analyse", "explainer", "podcast", "quiz", "review", "obituary", "nécrologie", "photos", "in pictures", "years after", "years ago", "anniversary", "anniversaire", "how to", "what to know", "recipe", "horoscope", "movie", "film", "album", "tv show"]
+}

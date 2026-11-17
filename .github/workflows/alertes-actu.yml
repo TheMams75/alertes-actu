@@ -1,0 +1,67 @@
+name: Alertes actu critiques
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # toutes les 10 min (GitHub peut décaler de quelques minutes)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run = passage normal, test = message de test, chat-id = récupérer ton chat_id, dry-run = simulation"
+        type: choice
+        default: run
+        options: [run, test, chat-id, dry-run]
+
+concurrency:
+  group: alertes-actu
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  alertes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      ALERTES_ETAT: ${{ github.workspace }}/state.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Récupérer la mémoire des articles déjà vus
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: alertes-etat-${{ github.run_id }}
+          restore-keys: alertes-etat-
+
+      - name: Lancer le script
+        run: python3 alertes.py "${{ inputs.mode || 'run' }}"
+
+      - name: Sauver la mémoire
+        if: always() && (github.event_name == 'schedule' || inputs.mode == 'run')
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: alertes-etat-${{ github.run_id }}
+
+      - name: Supprimer les anciennes mémoires (garde les 5 dernières)
+        if: always() && (github.event_name == 'schedule' || inputs.mode == 'run')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --key alertes-etat- --sort created_at --order desc --limit 100 --json id -q '.[5:][].id' \
+            | xargs -r -n1 gh cache delete || true
+
+      - name: Garder la planification active (GitHub la coupe après 60 jours sans commit)
+        if: github.event_name == 'schedule' || inputs.mode == 'run'
+        run: |
+          dernier=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - dernier )) -gt $(( 50 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Maintien de la planification"
+            git push
+          fi
