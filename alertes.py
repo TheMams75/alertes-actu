@@ -307,8 +307,10 @@ def chat_id():
         if c.get("id"):
             chats[c["id"]] = c.get("first_name") or c.get("title") or ""
     if not chats:
-        sys.exit("Aucun message reçu par le bot. Ouvre ton bot dans Telegram, "
-                 "envoie /start, puis relance ce mode.")
+        moi = telegram("getMe").get("result", {})
+        nom = moi.get("username", "?")
+        sys.exit(f"Aucun message reçu par le bot @{nom}. Ouvre https://t.me/{nom} "
+                 "dans Telegram, appuie sur Démarrer (ou envoie /start), puis relance.")
     for cid in chats:
         envoyer(f"Ton chat_id est : <code>{cid}</code>\nCopie-le dans le secret "
                 f"GitHub TELEGRAM_CHAT_ID.", chat_id=cid)
