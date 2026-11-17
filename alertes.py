@@ -74,7 +74,11 @@ def jaccard(a, b):
 
 
 def motif(terme):
-    return re.compile(r"(?<![\w])" + re.escape(terme.lower()) + r"(?![\w])")
+    """Un terme qui finit par * accepte toutes les terminaisons (crash* = crashes, crashed...)."""
+    t = terme.lower()
+    fin = r"\w*" if t.endswith("*") else ""
+    t = t.rstrip("*")
+    return re.compile(r"(?<![\w])" + re.escape(t) + fin + r"(?![\w])")
 
 
 # ---------- lecture des flux ----------
@@ -165,7 +169,7 @@ class Scoreur:
             pts = min(pts, poids * 2)  # plafond par groupe
             if touches:
                 total += pts
-                raisons += touches
+                raisons += [t for t in touches if t not in raisons]
         if total >= 3:
             acteurs = [t for t, m in self.acteurs if m.search(texte)]
             if acteurs:

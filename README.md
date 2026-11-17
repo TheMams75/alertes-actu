@@ -14,8 +14,8 @@ Toutes les 10 minutes environ, GitHub Actions lit les flux Al Jazeera, Reuters e
 
 ## Réglages (`config.json`)
 
-- `seuil_alerte` : plus il est haut, moins tu reçois d'alertes (6 par défaut).
-- `mots_cles` : mots qui font monter l'indice, groupés par poids (5, 3, 1).
+- `seuil_alerte` : plus il est haut, moins tu reçois d'alertes (8 par défaut).
+- `mots_cles` : mots qui font monter l'indice, groupés par poids. Un mot du groupe 8 suffit à déclencher une alerte. Un `*` final accepte toutes les terminaisons (`crash*` = crashes, crashed).
 - `acteurs` : pays, institutions et entreprises qui ajoutent un point.
 - `exclusions` : un titre qui contient un de ces mots n'est jamais envoyé.
 - `flux` : ajoute ou désactive une source (`"actif": false`).
