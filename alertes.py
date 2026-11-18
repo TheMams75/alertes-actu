@@ -312,7 +312,7 @@ def passage(envoi=True, test=False):
     candidats = []
     for g in groupes:
         g.sort(key=lambda x: x["score"], reverse=True)
-        bonus = 2 if len({a["source"] for a in g}) >= 2 else 0
+        bonus = cfg.get("bonus_sources", 2) if len({a["source"] for a in g}) >= 2 else 0
         g[0]["score"] = round(g[0]["score"] + bonus, 1)
         g[0]["niveau"] = niveau(g[0], cfg)
         if g[0]["niveau"]:
