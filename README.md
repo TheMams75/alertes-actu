@@ -14,10 +14,13 @@ Toutes les 10 minutes environ, GitHub Actions lit les flux Al Jazeera, Reuters e
 
 ## Réglages (`config.json`)
 
-- `seuil_alerte` : plus il est haut, moins tu reçois d'alertes (8 par défaut).
+- `seuil_alerte` : indice à partir duquel une info part en 🚨 URGENT, avec notification sonore (8 par défaut).
+- `seuil_a_suivre` : indice à partir duquel une info part en 🟠 À SUIVRE, en notification silencieuse (7 par défaut).
+- `declaratif` : verbes de prise de parole. Un titre déclaratif (« X insists… », « X warns… ») ne part jamais en URGENT, au plus en À SUIVRE.
 - `mots_cles` : mots qui font monter l'indice, groupés par poids. Un mot du groupe 8 suffit à déclencher une alerte. Un `*` final accepte toutes les terminaisons (`crash*` = crashes, crashed).
 - `acteurs` : pays, institutions et entreprises qui ajoutent un point.
-- `priorites` : bonus pour la finance (marchés, banques centrales, paiements) et la portée internationale, jusqu'à +3.
+- `priorites` : bonus pour la finance, la portée internationale et les zones chaudes (Gaza, Ukraine, Iran…), +2 par domaine, jusqu'à +3.
+- `exclusions_regex` : motifs exclus (ex. scores sportifs « 88-39 »).
 - `exclusions` : un titre qui contient un de ces mots n'est jamais envoyé.
 - `flux` : ajoute ou désactive une source (`"actif": false`).
 
@@ -25,7 +28,7 @@ Le mode `dry-run` montre dans les journaux ce qui serait envoyé, sans rien envo
 
 ## Comment l'indice est calculé
 
-Chaque mot-clé trouvé dans le titre compte son poids, la moitié s'il est seulement dans le résumé. Les acteurs ajoutent jusqu'à 2 points. Si au moins deux sources parlent du même événement, +2. Une même info n'est envoyée qu'une fois sur 12 heures.
+Chaque mot-clé trouvé dans le titre compte son poids, la moitié s'il est seulement dans le résumé. Les acteurs ajoutent jusqu'à 2 points. Si au moins deux sources parlent du même événement, +2. Une même info n'est envoyée qu'une fois sur 12 heures, sauf si elle passe de À SUIVRE à URGENT.
 
 ## Sources
 

@@ -155,15 +155,28 @@ class Scoreur:
                         for p, termes in cfg["mots_cles"].items()]
         self.acteurs = [(t, motif(t)) for t in cfg["acteurs"]]
         self.exclusions = [motif(t) for t in cfg["exclusions"]]
+        self.exclusions_regex = [re.compile(r) for r in cfg.get("exclusions_regex", [])]
+        self.declaratif = [motif(t) for t in cfg.get("declaratif", [])]
+        self.poids_majeur = max(int(p) for p in cfg["mots_cles"])
         pr = cfg.get("priorites", {})
         self.bonus_max = pr.get("bonus_max", 0)
         self.priorites = {k: [(t, motif(t)) for t in v]
                           for k, v in pr.items() if isinstance(v, list)}
 
+    def est_declaratif(self, titre):
+        """Vrai si le titre rapporte une prise de parole (« X insists… », « X warns… »).
+        L'attribution finale (« …, officials say ») ne compte pas : c'est un fait sourcé."""
+        t = re.sub(r",[^,]*\b(say|says|said|according to|selon|reports?)\b[^,]*$", "", titre)
+        debut = " ".join(t.split()[:6])
+        return any(m.search(debut) for m in self.declaratif) or bool(re.match(r"^[^:]{0,40}:\s*['‘\"«“]", t))
+
     def score(self, art):
         titre = art["titre"].lower()
         texte = titre + " " + art["resume"].lower()
-        if any(m.search(titre) for m in self.exclusions):
+        art["declaratif"] = self.est_declaratif(titre)
+        art["majeur"] = False
+        if any(m.search(titre) for m in self.exclusions) or \
+                any(r.search(art["titre"]) for r in self.exclusions_regex):
             return 0, ["exclu"]
         total, raisons = 0, []
         for poids, termes in self.groupes:
@@ -172,6 +185,8 @@ class Scoreur:
             pts = sum(poids if motif(t).search(titre) else poids / 2 for t in touches)
             pts = min(pts, poids * 2)  # plafond par groupe
             if touches:
+                if poids == self.poids_majeur and any(motif(t).search(titre) for t in touches):
+                    art["majeur"] = True
                 total += pts
                 raisons += [t for t in touches if t not in raisons]
         if total >= 3:
@@ -179,14 +194,28 @@ class Scoreur:
             if acteurs:
                 total += min(len(acteurs), 2)
                 raisons += acteurs[:2]
-            # priorités de Bob : finance et portée internationale (+2 par domaine, plafonné)
+            # priorités de Bob : finance, international, zones chaudes (+2 par domaine, plafonné)
             bonus = 0
             for domaine, termes in self.priorites.items():
                 if any(m.search(texte) for t, m in termes):
                     bonus += 2
                     raisons.append("+" + domaine)
             total += min(bonus, self.bonus_max)
+        if art["declaratif"]:
+            raisons.append("déclaratif")
         return round(total, 1), raisons
+
+
+def niveau(art, cfg):
+    """urgent, a_suivre ou None. Une déclaration n'est jamais urgente."""
+    if art["score"] >= cfg["seuil_alerte"] and not art.get("declaratif"):
+        return "urgent"
+    if art["score"] >= cfg.get("seuil_a_suivre", cfg["seuil_alerte"]):
+        return "a_suivre"
+    return None
+
+
+RANG = {None: 0, "a_suivre": 1, "urgent": 2}
 
 
 # ---------- Telegram ----------
@@ -206,20 +235,25 @@ def telegram(methode, **params):
         return {"ok": False}
 
 
-def envoyer(texte, chat_id=None):
+def envoyer(texte, chat_id=None, silencieux=False):
     chat_id = chat_id or os.environ.get("TELEGRAM_CHAT_ID", "").strip()
     if not chat_id:
         sys.exit("TELEGRAM_CHAT_ID manquant (secret GitHub à créer).")
     rep = telegram("sendMessage", chat_id=chat_id, text=texte, parse_mode="HTML",
-                   disable_web_page_preview="true")
+                   disable_web_page_preview="true",
+                   disable_notification="true" if silencieux else "false")
     return rep.get("ok", False)
 
 
-def formater(groupe):
+def formater(groupe, niv="urgent"):
     principal = groupe[0]
     sources = sorted({a["source"] for a in groupe})
     heure = (principal["date"] or maintenant()).astimezone(PARIS).strftime("%H:%M")
-    lignes = [f"🚨 <b>ALERTE</b> · {html.escape(', '.join(sources))}"
+    if niv == "urgent":
+        entete = "🚨 <b>URGENT</b>"
+    else:
+        entete = "🟠 <b>À SUIVRE</b>" + (" · déclaration" if principal.get("declaratif") else "")
+    lignes = [f"{entete} · {html.escape(', '.join(sources))}"
               + (f" ({len(sources)} sources)" if len(sources) > 1 else ""),
               f"<b>{html.escape(principal['titre'])}</b>"]
     resume = next((a["resume"] for a in groupe if a["resume"]), "")
@@ -280,33 +314,37 @@ def passage(envoi=True, test=False):
         g.sort(key=lambda x: x["score"], reverse=True)
         bonus = 2 if len({a["source"] for a in g}) >= 2 else 0
         g[0]["score"] = round(g[0]["score"] + bonus, 1)
-        if g[0]["score"] >= cfg["seuil_alerte"]:
-            # déjà alerté dans les 12 dernières heures ?
-            deja = any(jaccard(g[0]["tok"], set(x["tokens"])) >= cfg["similarite_doublon"]
-                       for x in alertes)
-            if not deja:
+        g[0]["niveau"] = niveau(g[0], cfg)
+        if g[0]["niveau"]:
+            # déjà envoyé dans les 12 dernières heures à un niveau égal ou supérieur ?
+            deja = max((RANG[x.get("niveau", "urgent")] for x in alertes
+                        if jaccard(g[0]["tok"], set(x["tokens"])) >= cfg["similarite_doublon"]),
+                       default=0)
+            if RANG[g[0]["niveau"]] > deja:
                 candidats.append(g)
-    candidats.sort(key=lambda g: g[0]["score"], reverse=True)
+    candidats.sort(key=lambda g: (RANG[g[0]["niveau"]], g[0]["score"]), reverse=True)
     candidats = candidats[: cfg["max_alertes_par_passage"]]
 
     classement = sorted(groupes, key=lambda g: g[0]["score"], reverse=True)
     print("Infos les mieux notées en ce moment :")
     for g in classement[:8]:
         src = ", ".join(sorted({a["source"] for a in g}))
-        print(f"  [{g[0]['score']}] {g[0]['titre']}  ({src})  <- {', '.join(g[0]['raisons'][:5])}")
+        print(f"  [{g[0]['score']}] {g[0]['titre']}  ({src})  <- {', '.join(g[0]['raisons'][:6])}")
 
     if test:
         if not classement:
             envoyer("🧪 Test : aucun article lu dans les flux.")
             return []
         g = classement[0]
-        ok = envoyer("🧪 <b>TEST</b> (seuil réel : " + str(cfg["seuil_alerte"]) + ")\n" + formater(g))
+        niv = g[0].get("niveau") or "a_suivre"
+        ok = envoyer("🧪 <b>TEST</b> (seuils réels : urgent " + str(cfg["seuil_alerte"]) + ", à suivre "
+                     + str(cfg.get("seuil_a_suivre")) + ")\n" + formater(g, niv))
         print("Alerte de test envoyée." if ok else "Échec de l'envoi Telegram.")
         return [g]
 
     print(f"{len(articles)} lus, {len(nouveaux)} nouveaux, {len(candidats)} alerte(s)")
     for g in candidats:
-        print(f"  [{g[0]['score']}] {g[0]['titre']}  <- {', '.join(g[0]['raisons'])}")
+        print(f"  {g[0]['niveau']} [{g[0]['score']}] {g[0]['titre']}  <- {', '.join(g[0]['raisons'])}")
 
     if premier and envoi:
         print("Premier passage : articles mémorisés, aucune alerte envoyée.")
@@ -314,8 +352,9 @@ def passage(envoi=True, test=False):
                 "(Al Jazeera, Reuters, AP), contrôlées toutes les 10 minutes environ.")
     elif envoi:
         for g in candidats:
-            if envoyer(formater(g)):
-                alertes.append({"tokens": sorted(g[0]["tok"]), "ts": t0.timestamp()})
+            niv = g[0]["niveau"]
+            if envoyer(formater(g, niv), silencieux=(niv == "a_suivre")):
+                alertes.append({"tokens": sorted(g[0]["tok"]), "ts": t0.timestamp(), "niveau": niv})
             time.sleep(1)
 
     # ménage : 7 jours pour les articles vus, 12 h pour les alertes envoyées
