@@ -2,7 +2,7 @@
 """Envoie sur Telegram les messages déposés dans outbox/ par les tâches Claude
 (revue du matin, fil 2h). Lancé par .github/workflows/envoi-telegram.yml.
 
-Nom de fichier attendu : outbox/AAAA-MM-JJ_HHMM_<type>.md
+Nom de fichier attendu : outbox/AAAA-MM-JJ_HHMMSS_<type>.md (secondes facultatives)
   type = revue  -> texte brut, prêt à copier dans WhatsApp ou Slack, avec son
   type = alerte -> mise en forme Telegram, avec son
   type = fil    -> mise en forme Telegram, silencieux

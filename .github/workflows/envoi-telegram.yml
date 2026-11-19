@@ -26,7 +26,7 @@ jobs:
         run: |
           avant="${{ github.event.before }}"
           if [ -z "$avant" ] || ! git cat-file -e "$avant" 2>/dev/null; then avant="HEAD~1"; fi
-          git diff --name-only --diff-filter=A "$avant" "${{ github.sha }}" -- outbox/ > /tmp/nouveaux.txt
+          git diff --name-only --diff-filter=AM "$avant" "${{ github.sha }}" -- outbox/ > /tmp/nouveaux.txt
           cat /tmp/nouveaux.txt
 
       - name: Envoyer sur Telegram
