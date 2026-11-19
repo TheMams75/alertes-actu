@@ -1,0 +1,33 @@
+name: Envoi Telegram (revue et fil)
+
+# Les tâches Claude déposent leur message dans outbox/ ; ce workflow l'envoie sur Telegram.
+on:
+  push:
+    branches: [main]
+    paths: ["outbox/**"]
+
+concurrency:
+  group: envoi-telegram
+  cancel-in-progress: false
+
+jobs:
+  envoi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lister les nouveaux messages
+        run: |
+          avant="${{ github.event.before }}"
+          if [ -z "$avant" ] || ! git cat-file -e "$avant" 2>/dev/null; then avant="HEAD~1"; fi
+          git diff --name-only --diff-filter=A "$avant" "${{ github.sha }}" -- outbox/ > /tmp/nouveaux.txt
+          cat /tmp/nouveaux.txt
+
+      - name: Envoyer sur Telegram
+        run: python3 envoyer_outbox.py /tmp/nouveaux.txt
