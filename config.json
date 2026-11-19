@@ -37,7 +37,7 @@
     {
       "nom": "France 24",
       "url": "https://www.france24.com/fr/rss",
-      "actif": false
+      "actif": true
     }
   ],
   "mots_cles": {
