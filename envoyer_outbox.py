@@ -14,6 +14,7 @@ Variables d'environnement : TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -78,7 +79,8 @@ if __name__ == "__main__":
     if not os.environ.get("TELEGRAM_BOT_TOKEN") or not os.environ.get("TELEGRAM_CHAT_ID"):
         sys.exit("Secrets Telegram absents.")
     with open(sys.argv[1], encoding="utf-8") as f:
-        fichiers = [l.strip() for l in f if l.strip().startswith("outbox/")]
+        motif = re.compile(r"^outbox/\d{4}-\d{2}-\d{2}_\d{4}_\w+\.(md|txt)$")
+        fichiers = [l.strip() for l in f if motif.match(l.strip())]
     if not fichiers:
         print("Aucun nouveau message dans outbox/.")
     resultats = [envoyer_fichier(p) for p in sorted(fichiers) if os.path.exists(p)]
